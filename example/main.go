@@ -20,10 +20,11 @@ func check(err error) {
 func main() {
 	cfg, err := ini.Load("example/config.ini")
 	check(err)
-	kafkaClient := kafka.Init(cfg.Section("kafka").Key("BROKER_LIST").String())
+	brokerList := cfg.Section("kafka").Key("BROKER_LIST").String()
+	kafkaClient := kafka.Init(brokerList)
 	// spew.Dump(kafkaClient)
 
-	go consumerTask(kafkaClient)
+	go consumerTask1(kafkaClient)
 	time.Sleep(3 * time.Second)
 
 	topic := "booking_success"
