@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	// "github.com/TranDuyThanh/go-spew/spew"
@@ -25,9 +26,13 @@ func main() {
 	kafkaClient := kafka.Init(brokerList)
 	// spew.Dump(kafkaClient)
 
+	var wg sync.WaitGroup
+
+	wg.Add(1)
 	go func() {
 		fmt.Println("Start consumer...")
 		kafkaClient.Consumer.ConsumeMessage("booking_success", bar, 1, 2, 3)
+		wg.Done()
 	}()
 
 	time.Sleep(3 * time.Second)
@@ -36,7 +41,7 @@ func main() {
 	value := "Hello world"
 	kafkaClient.Producer.ProduceMessage(topic, value)
 
-	time.Sleep(2 * time.Second)
+	wg.Wait()
 }
 
 func bar(a, b, c int, msgFromConsumer string) {
