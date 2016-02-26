@@ -81,7 +81,7 @@ func (this *KafkaProducer) ProduceMessage(topic string, value string) bool {
 		fmt.Println("Failed to produce message:", err)
 		return false
 	} else if !this.Silent {
-		fmt.Printf("produced: topic=%s\tpartition=%d\toffset=%d\n", topic, partition, offset)
+		fmt.Printf("produced: topic=%s\tpartition=%d\toffset=%d\tmsg=%v\n", topic, partition, offset, message.Value)
 	}
 
 	return true
