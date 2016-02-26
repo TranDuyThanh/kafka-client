@@ -10,6 +10,7 @@ import (
 )
 
 func init() {
+
 }
 
 func check(err error) {
@@ -24,7 +25,11 @@ func main() {
 	kafkaClient := kafka.Init(brokerList)
 	// spew.Dump(kafkaClient)
 
-	go consumerTask1(kafkaClient)
+	go func() {
+		fmt.Println("Start consumer...")
+		kafkaClient.Consumer.ConsumeMessage("booking_success", bar, 1, 2, 3)
+	}()
+
 	time.Sleep(3 * time.Second)
 
 	topic := "booking_success"
@@ -34,11 +39,6 @@ func main() {
 	time.Sleep(2 * time.Second)
 }
 
-func consumerTask(kafkaClient *kafka.Kafka) {
-	fmt.Println("Start consumer...")
-	kafkaClient.Consumer.ConsumeMessage("booking_success", bar, 1, 2, 3)
-}
-
-func bar(a, b, c int) {
-	fmt.Println("callback:", a, b, c)
+func bar(a, b, c int, msgFromConsumer string) {
+	fmt.Println("callback:", a, b, c, msgFromConsumer)
 }

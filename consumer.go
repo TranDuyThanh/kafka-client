@@ -51,7 +51,6 @@ func (this *KafkaConsumer) ConsumeMessage(topic string, funcs ...interface{}) {
 }
 
 func callback(messages chan *sarama.ConsumerMessage, funcs ...interface{}) {
-	fmt.Println(len(funcs))
 	if len(funcs) == 0 {
 		for msg := range messages {
 			fmt.Printf("consumed: %s\n", string(msg.Value))
@@ -59,22 +58,26 @@ func callback(messages chan *sarama.ConsumerMessage, funcs ...interface{}) {
 	} else {
 		for msg := range messages {
 			fmt.Printf("consumed with callback: %s\n", string(msg.Value))
-			execFunction(funcs...)
+			execFunction(string(msg.Value), funcs...)
 		}
 	}
 }
 
-func execFunction(funcs ...interface{}) (result []reflect.Value, err error) {
+func execFunction(msg string, funcs ...interface{}) (result []reflect.Value, err error) {
+	funcs = append(funcs, msg)
 	f := reflect.ValueOf(funcs[0])
-
 	params := funcs[1:]
-	fmt.Printf("params: %#v\n", params)
-	fmt.Println(len(params))
-	if len(params) != f.Type().NumIn() {
+	fmt.Printf("All params(%d): %#v, %#v\n", len(params), params)
+
+	numbOfReceivedParams := len(params)
+	numOfFuncInputParams := f.Type().NumIn()
+	if numbOfReceivedParams != numOfFuncInputParams {
+		fmt.Println("\033[0;31mError: The number of params is not adapted.\033[0m")
 		err = errors.New("The number of params is not adapted.")
-		return
+		return nil, err
 	}
-	in := make([]reflect.Value, len(params))
+
+	in := make([]reflect.Value, numbOfReceivedParams)
 	for k, param := range params {
 		in[k] = reflect.ValueOf(param)
 	}
