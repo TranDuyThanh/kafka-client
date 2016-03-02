@@ -25,29 +25,41 @@ type KafkaConsumer struct {
 }
 
 func (this *KafkaConsumer) ConsumeMessage(topic string, funcs ...interface{}) {
+
+	var kafkaConsumer = KafkaConsumer{
+		BrokerList: this.BrokerList,
+		Partitions: this.Partitions,
+		Offset:     this.Offset,
+		Verbose:    this.Verbose,
+		BufferSize: this.BufferSize,
+		Messages:   make(chan *sarama.ConsumerMessage, defaultBufferSize),
+		Closing:    make(chan struct{}),
+		WaitGroup:  this.WaitGroup,
+	}
+
 	fmt.Println("Start consumeMessage")
-	if this.validate() == false {
+	if kafkaConsumer.validate() == false {
 		os.Exit(1)
 	}
 
-	go this.waitForKillSignal()
+	go kafkaConsumer.waitForKillSignal()
 
-	c, err := sarama.NewConsumer(strings.Split(this.BrokerList, ","), nil)
+	c, err := sarama.NewConsumer(strings.Split(kafkaConsumer.BrokerList, ","), nil)
 	if err != nil {
 		fmt.Println("Failed to start consumer:", err)
 		os.Exit(1)
 	}
-	defer this.closeConsumer(c)
+	defer kafkaConsumer.closeConsumer(c)
 
-	if this.getMessageWithGoRoutine(c, topic) == false {
+	if kafkaConsumer.getMessageWithGoRoutine(c, topic) == false {
 		os.Exit(1)
 	}
 
-	go callback(this.Messages, funcs...)
+	go callback(kafkaConsumer.Messages, funcs...)
 
-	this.WaitGroup.Wait() //program will wait here until receive KILL SIGNAL
+	kafkaConsumer.WaitGroup.Wait() //program will wait here until receive KILL SIGNAL
 	fmt.Println("Done consuming topic", topic)
-	close(this.Messages)
+	close(kafkaConsumer.Messages)
 }
 
 func callback(messages chan *sarama.ConsumerMessage, funcs ...interface{}) {

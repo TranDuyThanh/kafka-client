@@ -1,9 +1,5 @@
 package kafka
 
-import (
-	"github.com/Shopify/sarama"
-)
-
 const defaultBufferSize = 256
 
 type Kafka struct {
@@ -28,8 +24,8 @@ func Init(brokerList string) *Kafka {
 		Offset:     "newest",
 		Partitions: "all",
 		BufferSize: 256, //default
-		Messages:   make(chan *sarama.ConsumerMessage, defaultBufferSize),
-		Closing:    make(chan struct{}),
+		Messages:   nil,
+		Closing:    nil,
 	}
 
 	return &kafka

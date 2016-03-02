@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	// "github.com/TranDuyThanh/go-spew/spew"
+	"github.com/TranDuyThanh/go-spew/spew"
 	"github.com/TranDuyThanh/ini"
 	"github.com/TranDuyThanh/kafka-client"
 )
@@ -24,22 +24,38 @@ func main() {
 	check(err)
 	brokerList := cfg.Section("kafka").Key("BROKER_LIST").String()
 	kafkaClient := kafka.Init(brokerList)
-	// spew.Dump(kafkaClient)
+	spew.Dump(kafkaClient)
 
 	var wg sync.WaitGroup
 
 	wg.Add(1)
 	go func() {
-		fmt.Println("Start consumer...")
-		kafkaClient.Consumer.ConsumeMessage("booking_success", bar, 1, 2, 3)
+		fmt.Println("Start consumer 1...")
+		kafkaClient.Consumer.ConsumeMessage("topic_1", bar, 1, 1, 1)
 		wg.Done()
 	}()
 
-	time.Sleep(3 * time.Second)
+	wg.Add(1)
+	go func() {
+		fmt.Println("Start consumer 2...")
+		kafkaClient.Consumer.ConsumeMessage("topic_2", bar, 2, 2, 2)
+		wg.Done()
+	}()
 
-	topic := "booking_success"
-	value := "Hello world"
-	kafkaClient.Producer.ProduceMessage(topic, value)
+	wg.Add(1)
+	go func() {
+		fmt.Println("Start consumer 3...")
+		kafkaClient.Consumer.ConsumeMessage("topic_3", bar, 3, 3, 3)
+		wg.Done()
+	}()
+
+	time.Sleep(2 * time.Second)
+
+	for i := 0; i < 5; i++ {
+		message := fmt.Sprintf("message %d", i+1)
+		kafkaClient.Producer.ProduceMessage("topic_1", message)
+		time.Sleep(1 * time.Second)
+	}
 
 	wg.Wait()
 }
