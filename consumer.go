@@ -68,10 +68,19 @@ func callback(messages chan *sarama.ConsumerMessage, funcs ...interface{}) {
 			fmt.Printf("consumed: %s\n", string(msg.Value))
 		}
 	} else {
+		var wg sync.WaitGroup
 		for msg := range messages {
-			fmt.Printf("consumed with callback: %s\n", string(msg.Value))
-			execFunction(string(msg.Value), funcs...)
+
+			wg.Add(1)
+
+			go func() {
+				defer wg.Done()
+				fmt.Printf("consumed with callback: %s\n", string(msg.Value))
+				execFunction(string(msg.Value), funcs...)
+			}()
 		}
+
+		wg.Wait()
 	}
 }
 

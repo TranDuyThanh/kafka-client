@@ -51,15 +51,15 @@ func main() {
 
 	time.Sleep(2 * time.Second)
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 50; i++ {
 		message := fmt.Sprintf("message %d", i+1)
 		kafkaClient.Producer.ProduceMessage("topic_1", message)
-		time.Sleep(1 * time.Second)
 	}
 
 	wg.Wait()
 }
 
 func bar(a, b, c int, msgFromConsumer string) {
+	time.Sleep(5000 * time.Millisecond)
 	fmt.Println("callback:", a, b, c, msgFromConsumer)
 }
