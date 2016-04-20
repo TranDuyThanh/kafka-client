@@ -1,11 +1,9 @@
 package kafka
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
-	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -62,50 +60,6 @@ func (this *KafkaConsumer) ConsumeMessage(topic string, funcs ...interface{}) {
 	close(kafkaConsumer.Messages)
 }
 
-func callback(messages chan *sarama.ConsumerMessage, funcs ...interface{}) {
-	if len(funcs) == 0 {
-		for msg := range messages {
-			fmt.Printf("consumed: %s\n", string(msg.Value))
-		}
-	} else {
-		var wg sync.WaitGroup
-		for msg := range messages {
-
-			wg.Add(1)
-
-			go func() {
-				defer wg.Done()
-				fmt.Printf("consumed with callback: %s\n", string(msg.Value))
-				execFunction(string(msg.Value), funcs...)
-			}()
-		}
-
-		wg.Wait()
-	}
-}
-
-func execFunction(msg string, funcs ...interface{}) (result []reflect.Value, err error) {
-	funcs = append(funcs, msg)
-	f := reflect.ValueOf(funcs[0])
-	params := funcs[1:]
-	fmt.Printf("All params(%d): %#v, %#v\n", len(params), params)
-
-	numbOfReceivedParams := len(params)
-	numOfFuncInputParams := f.Type().NumIn()
-	if numbOfReceivedParams != numOfFuncInputParams {
-		fmt.Println("\033[0;31mError: The number of params is not adapted.\033[0m")
-		err = errors.New("The number of params is not adapted.")
-		return nil, err
-	}
-
-	in := make([]reflect.Value, numbOfReceivedParams)
-	for k, param := range params {
-		in[k] = reflect.ValueOf(param)
-	}
-	result = f.Call(in)
-	return result, nil
-}
-
 func (this *KafkaConsumer) closeConsumer(c sarama.Consumer) {
 	err := c.Close()
 	if err != nil {
@@ -115,7 +69,7 @@ func (this *KafkaConsumer) closeConsumer(c sarama.Consumer) {
 
 func (this *KafkaConsumer) validate() bool {
 	if this.BrokerList == "" {
-		fmt.Println("You have to provide -brokers as a comma-separated list, or set the KafkaConsumer_PEERS environment variable.")
+		fmt.Println("You have to provide -brokers as a comma-separated list")
 		return false
 	}
 
