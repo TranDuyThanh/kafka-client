@@ -3,13 +3,23 @@ package kafka
 import (
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"sync"
+	"syscall"
 
 	"gopkg.in/bsm/sarama-cluster.v2"
 
 	"github.com/Shopify/sarama"
 )
+
+var terminatedSignals = []os.Signal{
+	syscall.SIGTERM,
+	syscall.SIGKILL,
+	syscall.SIGINT,
+	syscall.SIGQUIT,
+	syscall.SIGABRT,
+}
 
 func execFunction(msg string, funcs ...interface{}) (result []reflect.Value, err error) {
 	funcs = append(funcs, msg)

@@ -124,7 +124,7 @@ func (this *KafkaConsumer) getMessagesFromPartition(pc sarama.PartitionConsumer)
 
 func (this *KafkaConsumer) waitForKillSignal() {
 	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, os.Kill, os.Interrupt)
+	signal.Notify(signals, terminatedSignals...)
 	<-signals
 	fmt.Println("Initiating shutdown of Kafkaconsumer...")
 	close(this.Closing)

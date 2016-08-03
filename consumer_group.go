@@ -24,7 +24,6 @@ type KafkaConsumerGroup struct {
 }
 
 func (this *KafkaConsumerGroup) ConsumeMessage(group, topic string, funcs ...interface{}) {
-
 	kafkaConsumerGroup := KafkaConsumerGroup{
 		GroupID:    group,
 		Partitions: this.Partitions,
@@ -100,7 +99,7 @@ func (*KafkaConsumerGroup) printUsageErrorAndExit(format string, values ...inter
 
 func (this *KafkaConsumerGroup) waitForKillSignal() {
 	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, os.Kill, os.Interrupt)
+	signal.Notify(signals, terminatedSignals...)
 	<-signals
 	fmt.Println("Initiating shutdown of KafkaconsumerGroup...")
 	close(this.Closing)
