@@ -15,7 +15,7 @@ func execFunction(msg string, funcs ...interface{}) (result []reflect.Value, err
 	funcs = append(funcs, msg)
 	f := reflect.ValueOf(funcs[0])
 	params := funcs[1:]
-	fmt.Printf("All params(%d): %#v, %#v\n", len(params), params)
+	fmt.Printf("All params(%d): %#v\n", len(params), params)
 
 	numbOfReceivedParams := len(params)
 	numOfFuncInputParams := f.Type().NumIn()
