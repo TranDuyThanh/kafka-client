@@ -21,6 +21,7 @@ type KafkaConsumerGroup struct {
 	Messages   chan *sarama.ConsumerMessage
 	Closing    chan struct{}
 	WaitGroup  sync.WaitGroup
+	Version    sarama.KafkaVersion
 }
 
 func (this *KafkaConsumerGroup) ConsumeMessage(group, topic string, funcs ...interface{}) {
@@ -39,6 +40,7 @@ func (this *KafkaConsumerGroup) ConsumeMessage(group, topic string, funcs ...int
 	config := cluster.NewConfig()
 	config.Consumer.Return.Errors = true
 	config.Group.Return.Notifications = true
+	config.Version = this.Version
 
 	// Init consumer, consume errors & messages
 	clusterConsumer, err := cluster.NewConsumer(
