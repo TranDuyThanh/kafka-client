@@ -65,14 +65,14 @@ func (this *KafkaConsumerGroup) ConsumeMessage(group, topic string, funcs ...int
 		kafkaConsumerGroup.printErrorAndExit(69, "Failed to start consumer: %s", err)
 	}
 
-	go func(clusterConsumer *cluster.Consumer, this *KafkaConsumerGroup) {
+	go func(clusterConsumer *cluster.Consumer) {
 		for err := range clusterConsumer.Errors() {
 			fmt.Printf("Error: %s\n", err.Error())
 			if !this.DoneInitial {
 				os.Exit(1)
 			}
 		}
-	}(clusterConsumer, this)
+	}(clusterConsumer)
 
 	go func(clusterConsumer *cluster.Consumer) {
 		for note := range clusterConsumer.Notifications() {
@@ -84,6 +84,7 @@ func (this *KafkaConsumerGroup) ConsumeMessage(group, topic string, funcs ...int
 		consumerGroupCallback(clusterConsumer, funcs...)
 	}(clusterConsumer)
 
+	this.DoneInitial = true
 	kafkaConsumerGroup.waitForKillSignal()
 
 	if err := clusterConsumer.Close(); err != nil {
@@ -107,7 +108,6 @@ func (*KafkaConsumerGroup) printUsageErrorAndExit(format string, values ...inter
 func (this *KafkaConsumerGroup) waitForKillSignal() {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, terminatedSignals...)
-	this.DoneInitial = true
 	<-signals
 	fmt.Println("Initiating shutdown of KafkaconsumerGroup...")
 	close(this.Closing)
