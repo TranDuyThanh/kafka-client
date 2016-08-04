@@ -12,29 +12,31 @@ import (
 )
 
 type KafkaConsumerGroup struct {
-	GroupID    string
-	Partitions string
-	BrokerList string
-	Offset     string
-	Verbose    bool
-	BufferSize int
-	Messages   chan *sarama.ConsumerMessage
-	Closing    chan struct{}
-	WaitGroup  sync.WaitGroup
-	Version    sarama.KafkaVersion
+	GroupID     string
+	Partitions  string
+	BrokerList  string
+	Offset      string
+	Verbose     bool
+	BufferSize  int
+	Messages    chan *sarama.ConsumerMessage
+	Closing     chan struct{}
+	WaitGroup   sync.WaitGroup
+	Version     sarama.KafkaVersion
+	DoneInitial bool
 }
 
 func (this *KafkaConsumerGroup) ConsumeMessage(group, topic string, funcs ...interface{}) {
 	kafkaConsumerGroup := KafkaConsumerGroup{
-		GroupID:    group,
-		Partitions: this.Partitions,
-		BrokerList: this.BrokerList,
-		Offset:     "newest",
-		Verbose:    false,
-		BufferSize: this.BufferSize,
-		Messages:   make(chan *sarama.ConsumerMessage, defaultBufferSize),
-		Closing:    make(chan struct{}),
-		WaitGroup:  this.WaitGroup,
+		GroupID:     group,
+		Partitions:  this.Partitions,
+		BrokerList:  this.BrokerList,
+		Offset:      "newest",
+		Verbose:     false,
+		BufferSize:  this.BufferSize,
+		Messages:    make(chan *sarama.ConsumerMessage, defaultBufferSize),
+		Closing:     make(chan struct{}),
+		WaitGroup:   this.WaitGroup,
+		DoneInitial: false,
 	}
 	// Init config
 	config := cluster.NewConfig()
@@ -63,16 +65,14 @@ func (this *KafkaConsumerGroup) ConsumeMessage(group, topic string, funcs ...int
 		kafkaConsumerGroup.printErrorAndExit(69, "Failed to start consumer: %s", err)
 	}
 
-	go func(clusterConsumer *cluster.Consumer) {
-		initial := true
+	go func(clusterConsumer *cluster.Consumer, this *KafkaConsumerGroup) {
 		for err := range clusterConsumer.Errors() {
 			fmt.Printf("Error: %s\n", err.Error())
-			if initial {
+			if !this.DoneInitial {
 				os.Exit(1)
 			}
-			initial = false
 		}
-	}(clusterConsumer)
+	}(clusterConsumer, this)
 
 	go func(clusterConsumer *cluster.Consumer) {
 		for note := range clusterConsumer.Notifications() {
@@ -107,6 +107,7 @@ func (*KafkaConsumerGroup) printUsageErrorAndExit(format string, values ...inter
 func (this *KafkaConsumerGroup) waitForKillSignal() {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, terminatedSignals...)
+	this.DoneInitial = true
 	<-signals
 	fmt.Println("Initiating shutdown of KafkaconsumerGroup...")
 	close(this.Closing)
