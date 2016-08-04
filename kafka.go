@@ -30,8 +30,12 @@ func getVersion(versionStr string) sarama.KafkaVersion {
 	}
 }
 
-func Init(brokerList string, version string) *Kafka {
-	var kafka Kafka
+func Init(brokerList string) *Kafka {
+	return InitWithBrokerVersion(brokerList, "0.9.0.0")
+}
+
+func InitWithBrokerVersion(brokerList string, version string) *Kafka {
+	kafka := Kafka{}
 	kafka.Producer = KafkaProducer{
 		BrokerList:  brokerList,
 		Key:         "",
