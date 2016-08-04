@@ -50,19 +50,15 @@ func consumerGroupCallback(clusterConsumer *cluster.Consumer, funcs ...interface
 		}
 	} else {
 		var wg sync.WaitGroup
-
 		for msg := range clusterConsumer.Messages() {
-
 			wg.Add(1)
 			go func(msg *sarama.ConsumerMessage) {
 				defer wg.Done()
 				fmt.Printf("consumed with callback: %s/%d/%d\t\t\t%s\n", msg.Topic, msg.Partition, msg.Offset, msg.Value)
 				execFunction(string(msg.Value), funcs...)
-				clusterConsumer.MarkOffset(msg, "")
+				clusterConsumer.MarkPartitionOffset(msg.Topic, msg.Partition, msg.Offset+1, "")
 			}(msg)
-
 		}
-
 		wg.Wait()
 	}
 }
