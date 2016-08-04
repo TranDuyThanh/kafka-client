@@ -63,21 +63,26 @@ func (this *KafkaConsumerGroup) ConsumeMessage(group, topic string, funcs ...int
 		kafkaConsumerGroup.printErrorAndExit(69, "Failed to start consumer: %s", err)
 	}
 
-	go func() {
+	go func(clusterConsumer *cluster.Consumer) {
+		initial := true
 		for err := range clusterConsumer.Errors() {
 			fmt.Printf("Error: %s\n", err.Error())
+			if initial {
+				os.Exit(1)
+			}
+			initial = false
 		}
-	}()
+	}(clusterConsumer)
 
-	go func() {
+	go func(clusterConsumer *cluster.Consumer) {
 		for note := range clusterConsumer.Notifications() {
 			fmt.Printf("Rebalanced: %+v\n", note)
 		}
-	}()
+	}(clusterConsumer)
 
-	go func() {
+	go func(clusterConsumer *cluster.Consumer) {
 		consumerGroupCallback(clusterConsumer, funcs...)
-	}()
+	}(clusterConsumer)
 
 	kafkaConsumerGroup.waitForKillSignal()
 
