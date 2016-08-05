@@ -21,10 +21,11 @@ type KafkaConsumerGroup struct {
 	Messages   chan *sarama.ConsumerMessage
 	Closing    chan struct{}
 	WaitGroup  sync.WaitGroup
+	Version    sarama.KafkaVersion
+	Ready      bool
 }
 
 func (this *KafkaConsumerGroup) ConsumeMessage(group, topic string, funcs ...interface{}) {
-
 	kafkaConsumerGroup := KafkaConsumerGroup{
 		GroupID:    group,
 		Partitions: this.Partitions,
@@ -35,11 +36,13 @@ func (this *KafkaConsumerGroup) ConsumeMessage(group, topic string, funcs ...int
 		Messages:   make(chan *sarama.ConsumerMessage, defaultBufferSize),
 		Closing:    make(chan struct{}),
 		WaitGroup:  this.WaitGroup,
+		Ready:      false,
 	}
 	// Init config
 	config := cluster.NewConfig()
 	config.Consumer.Return.Errors = true
 	config.Group.Return.Notifications = true
+	config.Version = this.Version
 
 	// Init consumer, consume errors & messages
 	clusterConsumer, err := cluster.NewConsumer(
@@ -62,22 +65,26 @@ func (this *KafkaConsumerGroup) ConsumeMessage(group, topic string, funcs ...int
 		kafkaConsumerGroup.printErrorAndExit(69, "Failed to start consumer: %s", err)
 	}
 
-	go func() {
+	go func(clusterConsumer *cluster.Consumer) {
 		for err := range clusterConsumer.Errors() {
 			fmt.Printf("Error: %s\n", err.Error())
+			if !this.Ready {
+				os.Exit(1)
+			}
 		}
-	}()
+	}(clusterConsumer)
 
-	go func() {
+	go func(clusterConsumer *cluster.Consumer) {
 		for note := range clusterConsumer.Notifications() {
 			fmt.Printf("Rebalanced: %+v\n", note)
 		}
-	}()
+	}(clusterConsumer)
 
-	go func() {
+	go func(clusterConsumer *cluster.Consumer) {
 		consumerGroupCallback(clusterConsumer, funcs...)
-	}()
+	}(clusterConsumer)
 
+	this.Ready = true
 	kafkaConsumerGroup.waitForKillSignal()
 
 	if err := clusterConsumer.Close(); err != nil {
@@ -100,7 +107,7 @@ func (*KafkaConsumerGroup) printUsageErrorAndExit(format string, values ...inter
 
 func (this *KafkaConsumerGroup) waitForKillSignal() {
 	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, os.Kill, os.Interrupt)
+	signal.Notify(signals, terminatedSignals...)
 	<-signals
 	fmt.Println("Initiating shutdown of KafkaconsumerGroup...")
 	close(this.Closing)
