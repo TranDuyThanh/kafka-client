@@ -26,7 +26,7 @@ func getVersion(versionStr string) sarama.KafkaVersion {
 	case "0.10.0.0":
 		return sarama.V0_10_0_0
 	default:
-		panic("Version unsupported.")
+		panic("Unsupported Version")
 	}
 }
 
