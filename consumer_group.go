@@ -12,31 +12,31 @@ import (
 )
 
 type KafkaConsumerGroup struct {
-	GroupID     string
-	Partitions  string
-	BrokerList  string
-	Offset      string
-	Verbose     bool
-	BufferSize  int
-	Messages    chan *sarama.ConsumerMessage
-	Closing     chan struct{}
-	WaitGroup   sync.WaitGroup
-	Version     sarama.KafkaVersion
-	DoneInitial bool
+	GroupID    string
+	Partitions string
+	BrokerList string
+	Offset     string
+	Verbose    bool
+	BufferSize int
+	Messages   chan *sarama.ConsumerMessage
+	Closing    chan struct{}
+	WaitGroup  sync.WaitGroup
+	Version    sarama.KafkaVersion
+	Ready      bool
 }
 
 func (this *KafkaConsumerGroup) ConsumeMessage(group, topic string, funcs ...interface{}) {
 	kafkaConsumerGroup := KafkaConsumerGroup{
-		GroupID:     group,
-		Partitions:  this.Partitions,
-		BrokerList:  this.BrokerList,
-		Offset:      "newest",
-		Verbose:     false,
-		BufferSize:  this.BufferSize,
-		Messages:    make(chan *sarama.ConsumerMessage, defaultBufferSize),
-		Closing:     make(chan struct{}),
-		WaitGroup:   this.WaitGroup,
-		DoneInitial: false,
+		GroupID:    group,
+		Partitions: this.Partitions,
+		BrokerList: this.BrokerList,
+		Offset:     "newest",
+		Verbose:    false,
+		BufferSize: this.BufferSize,
+		Messages:   make(chan *sarama.ConsumerMessage, defaultBufferSize),
+		Closing:    make(chan struct{}),
+		WaitGroup:  this.WaitGroup,
+		Ready:      false,
 	}
 	// Init config
 	config := cluster.NewConfig()
@@ -68,7 +68,7 @@ func (this *KafkaConsumerGroup) ConsumeMessage(group, topic string, funcs ...int
 	go func(clusterConsumer *cluster.Consumer) {
 		for err := range clusterConsumer.Errors() {
 			fmt.Printf("Error: %s\n", err.Error())
-			if !this.DoneInitial {
+			if !this.Ready {
 				os.Exit(1)
 			}
 		}
@@ -84,7 +84,7 @@ func (this *KafkaConsumerGroup) ConsumeMessage(group, topic string, funcs ...int
 		consumerGroupCallback(clusterConsumer, funcs...)
 	}(clusterConsumer)
 
-	this.DoneInitial = true
+	this.Ready = true
 	kafkaConsumerGroup.waitForKillSignal()
 
 	if err := clusterConsumer.Close(); err != nil {
